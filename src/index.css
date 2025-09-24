@@ -11,3 +11,80 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+:root {
+  --bg-1: #f4f7fb; /* very light gray-blue */
+  --bg-2: #ffffff; /* white */
+  --accent: #1f6fbf; /* professional blue */
+  --accent-2: #0b3a66; /* deep navy */
+  --muted: #2d3748; /* dark slate for text */
+  --card: #f7fbff; /* very light tint for cards */
+  --card-border: rgba(11,58,102,0.08);
+  --shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+body {
+  /* pastel blend: soft pink -> lavender -> peach */
+  background: linear-gradient(180deg, #fff0f6 0%, #f6f0ff 50%, #fff8f0 100%);
+  color: var(--muted);
+}
+
+a { color: var(--accent-2); }
+
+button { font-family: inherit; }
+
+/* Minimal cute aesthetic helpers */
+.page { max-width: 1200px; margin: 0 auto; padding: 22px; }
+
+.card { background: var(--card); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); border: 1px solid var(--card-border); }
+
+/* stronger card highlight */
+.card { 
+  border: 1px solid var(--card-border);
+  background: linear-gradient(180deg, rgba(247,250,255,0.98), rgba(243,247,255,0.98));
+  padding: 20px;
+}
+
+.card h3 { margin-top: 0; }
+
+.label { display: inline-block; font-size: 12px; color: var(--muted); background: rgba(11,58,102,0.04); padding: 6px 8px; border-radius: 6px; margin-bottom: 8px; }
+
+.chip { display: inline-block; padding: 6px 10px; border-radius: 12px; font-weight: 600; font-size: 13px; }
+.chip.good { background: rgba(34,197,94,0.12); color: #1f7a3a; }
+.chip.warn { background: rgba(245,158,11,0.12); color: #92400e; }
+.chip.bad  { background: rgba(239,68,68,0.08); color: #991b1b; }
+
+h2 { color: var(--muted); font-weight: 700; margin: 0 0 10px; }
+h3 { color: var(--muted); margin: 0 0 12px; }
+
+button { background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; box-shadow: 0 6px 14px rgba(11,58,102,0.12); }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+textarea, input[type="text"], input[type="file"] { border: 1px solid rgba(11,58,102,0.06); border-radius: 8px; padding: 10px; font-size: 14px; width: 100%; box-sizing: border-box; background: var(--card); }
+
+.nav-links a { transition: color .15s ease, background .15s ease; }
+.nav-links a.active { background: rgba(255,155,179,0.14); color: var(--accent); }
+
+/* Uploader-specific styling: dark purple panel with beige text */
+.card.uploader {
+  padding: 24px;
+  transition: background .25s ease, color .25s ease, transform .12s ease;
+  background: linear-gradient(180deg, #2b1036, #3b1a4f);
+  border-color: rgba(255,255,255,0.06);
+  color: #f5efe6; /* warm beige text */
+}
+.card.uploader:hover { transform: translateY(-3px); filter: brightness(1.03); }
+.card.uploader .label { color: #f5efe6; background: rgba(255,255,255,0.03); }
+.card.uploader textarea, .card.uploader input {
+  color: #f5efe6;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Reusable dark card (same visual language as uploader) */
+.card.dark {
+  background: linear-gradient(180deg, #2b1036, #3b1a4f);
+  border-color: rgba(255,255,255,0.06);
+  color: #f5efe6;
+}
+.card.dark textarea, .card.dark input { color: #f5efe6; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); }

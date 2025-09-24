@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transcript & Accuracy Dashboard</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React Libraries -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel to compile JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        /* Simple transition for page fade-in */
+        .page-enter {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- Helper Function for Word Error Rate (WER) ---
+        const calculateWER = (reference, hypothesis) => {
+            const refWords = reference.trim().toLowerCase().split(/\s+/);
+            const hypWords = hypothesis.trim().toLowerCase().split(/\s+/);
+            const n = refWords.length;
+            const m = hypWords.length;
+
+            if (n === 0 && m === 0) return { wer: 0, s: 0, d: 0, i: 0, n: 0 };
+            if (n === 0) return { wer: 1, s: 0, d: 0, i: m, n: 0 };
+            if (m === 0) return { wer: 1, s: 0, d: n, i: 0, n: n };
+
+            const dp = Array(n + 1).fill(null).map(() => Array(m + 1).fill(0));
+
+            for (let i = 0; i <= n; i++) dp[i][0] = i;
+            for (let j = 0; j <= m; j++) dp[0][j] = j;
+
+            for (let i = 1; i <= n; i++) {
+                for (let j = 1; j <= m; j++) {
+                    const cost = refWords[i - 1] === hypWords[j - 1] ? 0 : 1;
+                    dp[i][j] = Math.min(
+                        dp[i - 1][j] + 1,        // Deletion
+                        dp[i][j - 1] + 1,        // Insertion
+                        dp[i - 1][j - 1] + cost  // Substitution
+                    );
+                }
+            }
+
+            const errors = dp[n][m];
+            const wer = n > 0 ? errors / n : Infinity;
+            
+            // This is a simplified calculation for S, D, I. A full backtracking algorithm is complex.
+            // For this project, we'll focus on the final error count.
+            const s=0, d=0, i=0; // Placeholder values, the total errors is the key metric.
+
+            return { wer: Math.min(wer, 1.0), errors, n }; // Cap WER at 1.0 (100%)
+        };
+
+
+        // --- Reusable Components ---
+        const Card = ({ children, className }) => (
+            <div className={`bg-white rounded-xl shadow-md p-6 ${className}`}>
+                {children}
+            </div>
+        );
+
+        const Button = ({ children, onClick, className, type = "button" }) => (
+            <button
+                type={type}
+                onClick={onClick}
+                className={`px-4 py-2 rounded-lg font-semibold text-white transition-transform transform hover:scale-105 ${className}`}
+            >
+                {children}
+            </button>
+        );
+
+        // --- Page Components ---
+
+        // 1. Transcript Manager Page
+        const TranscriptManagerPage = () => {
+            const [transcript, setTranscript] = useState("This is an example transcript. You can edit the text here. The important keywords are highlighted.");
+            const [keywords, setKeywords] = useState("transcript, keywords, highlighted");
+            const [history, setHistory] = useState([]);
+
+            useEffect(() => {
+                const savedHistory = localStorage.getItem('transcriptHistory');
+                if (savedHistory) {
+                    setHistory(JSON.parse(savedHistory));
+                }
+            }, []);
+
+            const saveToHistory = () => {
+                const newHistory = [{ text: transcript, date: new Date().toLocaleString() }, ...history.slice(0, 4)];
+                setHistory(newHistory);
+                localStorage.setItem('transcriptHistory', JSON.stringify(newHistory));
+            };
+
+            const loadFromHistory = (text) => {
+                setTranscript(text);
+            };
+            
+            const clearHistory = () => {
+                setHistory([]);
+                localStorage.removeItem('transcriptHistory');
+            };
+
+            const downloadTranscript = () => {
+                const blob = new Blob([transcript], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'transcript.txt';
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const highlightText = (text, keywords) => {
+                if (!keywords.trim()) return text;
+                const keywordArray = keywords.split(',').map(k => k.trim()).filter(Boolean);
+                const regex = new RegExp(`\\b(${keywordArray.join('|')})\\b`, 'gi');
+                return text.split(regex).map((part, index) => 
+                    keywordArray.some(k => k.toLowerCase() === part.toLowerCase())
+                        ? <mark key={index} className="bg-yellow-200 rounded px-1">{part}</mark>
+                        : part
+                );
+            };
+
+            return (
+                <div className="space-y-6 page-enter">
+                    <h2 className="text-2xl font-bold text-gray-800">Transcript Manager</h2>
+                    <Card>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label htmlFor="transcript" className="block text-sm font-medium text-gray-700 mb-1">Transcript Text</label>
+                                <textarea
+                                    id="transcript"
+                                    value={transcript}
+                                    onChange={(e) => setTranscript(e.target.value)}
+                                    rows="10"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition"
+                                    placeholder="Paste or type your transcript here..."
+                                ></textarea>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-lg border">
+                                <h3 className="font-semibold mb-2">Highlighted View</h3>
+                                <div className="prose max-w-none h-full">{highlightText(transcript, keywords)}</div>
+                            </div>
+                        </div>
+                        <div className="mt-4">
+                            <label htmlFor="keywords" className="block text-sm font-medium text-gray-700 mb-1">Keywords (comma-separated)</label>
+                            <input
+                                type="text"
+                                id="keywords"
+                                value={keywords}
+                                onChange={(e) => setKeywords(e.target.value)}
+                                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition"
+                                placeholder="e.g., meeting, project, deadline"
+                            />
+                        </div>
+                         <div className="mt-6 flex flex-wrap gap-3">
+                            <Button onClick={saveToHistory} className="bg-indigo-600 hover:bg-indigo-700">Save to History</Button>
+                            <Button onClick={downloadTranscript} className="bg-green-600 hover:bg-green-700">Download .txt</Button>
+                        </div>
+                    </Card>
+
+                    <Card>
+                        <div className="flex justify-between items-center mb-4">
+                             <h3 className="text-xl font-bold text-gray-800">History</h3>
+                             {history.length > 0 && <Button onClick={clearHistory} className="bg-red-500 hover:bg-red-600 text-sm !py-1">Clear History</Button>}
+                        </div>
+                        {history.length > 0 ? (
+                            <ul className="space-y-2">
+                                {history.map((item, index) => (
+                                    <li key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                                        <p className="truncate text-gray-600 pr-4">"{item.text}"</p>
+                                        <div className="flex items-center flex-shrink-0">
+                                            <span className="text-xs text-gray-400 mr-4">{item.date}</span>
+                                            <Button onClick={() => loadFromHistory(item.text)} className="bg-gray-600 hover:bg-gray-700 text-xs !py-1">Load</Button>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-gray-500">No saved transcripts yet.</p>
+                        )}
+                    </Card>
+                </div>
+            );
+        };
+
+
+        // 2. Accuracy Analyzer Page
+        const AccuracyAnalyzerPage = () => {
+            const [reference, setReference] = useState("The quick brown fox jumps over the lazy dog");
+            const [hypothesis, setHypothesis] = useState("The quick brown dog jumps over a lazy fox");
+            const [result, setResult] = useState(null);
+            
+            const handleAnalysis = () => {
+                const werResult = calculateWER(reference, hypothesis);
+                setResult(werResult);
+            };
+            
+            useEffect(() => {
+                handleAnalysis();
+            }, []);
+
+            return (
+                <div className="space-y-6 page-enter">
+                    <h2 className="text-2xl font-bold text-gray-800">Accuracy Analyzer</h2>
+                    <Card>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label htmlFor="reference" className="block text-sm font-medium text-gray-700 mb-1">Reference Text (Ground Truth)</label>
+                                <textarea
+                                    id="reference"
+                                    value={reference}
+                                    onChange={(e) => setReference(e.target.value)}
+                                    rows="6"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 transition"
+                                ></textarea>
+                            </div>
+                             <div>
+                                <label htmlFor="hypothesis" className="block text-sm font-medium text-gray-700 mb-1">Hypothesis Text (AI Output)</label>
+                                <textarea
+                                    id="hypothesis"
+                                    value={hypothesis}
+                                    onChange={(e) => setHypothesis(e.target.value)}
+                                    rows="6"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 transition"
+                                ></textarea>
+                            </div>
+                        </div>
+                        <div className="mt-6">
+                            <Button onClick={handleAnalysis} className="bg-blue-600 hover:bg-blue-700 w-full md:w-auto">Analyze Accuracy</Button>
+                        </div>
+                    </Card>
+
+                    {result && (
+                         <Card>
+                            <h3 className="text-xl font-bold text-gray-800 mb-4">Analysis Results</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                               <div className="bg-red-100 p-4 rounded-lg">
+                                    <div className="text-3xl font-bold text-red-600">{(result.wer * 100).toFixed(2)}%</div>
+                                    <div className="text-sm text-red-800">Word Error Rate (WER)</div>
+                                </div>
+                               <div className="bg-green-100 p-4 rounded-lg">
+                                    <div className="text-3xl font-bold text-green-600">{((1 - result.wer) * 100).toFixed(2)}%</div>
+                                    <div className="text-sm text-green-800">Accuracy</div>
+                                </div>
+                                <div className="bg-blue-100 p-4 rounded-lg">
+                                    <div className="text-3xl font-bold text-blue-600">{result.errors} / {result.n}</div>
+                                    <div className="text-sm text-blue-800">Errors / Total Words</div>
+                                </div>
+                            </div>
+                        </Card>
+                    )}
+                </div>
+            );
+        };
+        
+        // --- Main App Component ---
+        const App = () => {
+            const [currentPage, setCurrentPage] = useState('manager'); // 'manager' or 'analyzer'
+
+            const NavLink = ({ page, children }) => {
+                const isActive = currentPage === page;
+                return (
+                     <button
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                            isActive 
+                                ? 'bg-indigo-700 text-white' 
+                                : 'text-indigo-100 hover:bg-indigo-500 hover:bg-opacity-75'
+                        }`}
+                    >
+                        {children}
+                    </button>
+                )
+            };
+
+            return (
+                <div>
+                    <nav className="bg-indigo-600 shadow-lg">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex items-center justify-between h-16">
+                                <div className="flex items-center">
+                                    <span className="font-bold text-white text-xl">
+                                        Transcript Dashboard
+                                    </span>
+                                </div>
+                                <div className="flex space-x-4">
+                                    <NavLink page="manager">Transcript Manager</NavLink>
+                                    <NavLink page="analyzer">Accuracy Analyzer</NavLink>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+                    <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+                        {currentPage === 'manager' && <TranscriptManagerPage />}
+                        {currentPage === 'analyzer' && <AccuracyAnalyzerPage />}
+                    </main>
+                </div>
+            );
+        };
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
+    </script>
+</body>
+</html>
