@@ -3,18 +3,25 @@ import AccuracyEvaluator from "../components/AccuracyEvaluator";
 import AccuracyChart from "../components/AccuracyChart";
 
 function AccuracyAnalyserPage() {
-  const [accuracyData, setAccuracyData] = useState([
-    { test: "Meeting Transcript", accuracy: 92.3 },
-    { test: "Interview Recording", accuracy: 87.8 },
-    { test: "Lecture Audio", accuracy: 95.1 },
-    { test: "Phone Call", accuracy: 78.5 }
-  ]);
+  const [accuracyData, setAccuracyData] = useState(() => {
+    try { const raw = localStorage.getItem('tt_accuracy'); if (raw) return JSON.parse(raw); } catch(e) {}
+    return [
+      { test: "Meeting Transcript", accuracy: 92.3 },
+      { test: "Interview Recording", accuracy: 87.8 },
+      { test: "Lecture Audio", accuracy: 95.1 },
+      { test: "Phone Call", accuracy: 78.5 }
+    ];
+  });
 
   const handleNewResult = (result) => {
-    setAccuracyData((prev) => [
-      ...prev,
-      { test: `Test ${prev.length + 1}`, accuracy: result.accuracy },
-    ]);
+    setAccuracyData((prev) => {
+      const next = [
+        ...prev,
+        { test: `Test ${prev.length + 1}`, accuracy: result.accuracy },
+      ];
+      try { localStorage.setItem('tt_accuracy', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
   };
 
   return (

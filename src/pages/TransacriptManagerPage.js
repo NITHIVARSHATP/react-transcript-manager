@@ -6,19 +6,39 @@ import ExportButton from "../components/ExportButton";
 
 function TranscriptManagerPage() {
   const [currentText, setCurrentText] = useState("");
-  const [history, setHistory] = useState([
-    "Sample Meeting: Discussed the quarterly project goals and team responsibilities for the upcoming sprint.",
-    "Interview Transcript: Candidate showed strong technical skills and good communication abilities during the session.",
-    "Lecture Notes: Introduction to machine learning concepts including supervised and unsupervised learning methods."
-  ]);
+  const [history, setHistory] = useState(() => {
+    try {
+      const raw = localStorage.getItem('tt_history');
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return [
+      "Sample Meeting: Discussed the quarterly project goals and team responsibilities for the upcoming sprint.",
+      "Interview Transcript: Candidate showed strong technical skills and good communication abilities during the session.",
+      "Lecture Notes: Introduction to machine learning concepts including supervised and unsupervised learning methods."
+    ];
+  });
 
   const handleUpload = (text) => {
     setCurrentText(text);
-    setHistory((prev) => [...prev, text]);
+    setHistory((prev) => {
+      const next = [...prev, text];
+      try { localStorage.setItem('tt_history', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
   };
 
   const handleSelectHistory = (text) => {
     setCurrentText(text);
+  };
+
+  const handleSave = () => {
+    const txt = (currentText || '').trim();
+    if (!txt) return; // don't save empty
+    setHistory((prev) => {
+      const next = [...prev, txt];
+      try { localStorage.setItem('tt_history', JSON.stringify(next)); } catch (e) {}
+      return next;
+    });
   };
 
   const keywords = useMemo(() => {
@@ -51,7 +71,10 @@ function TranscriptManagerPage() {
             <TranscriptEditor text={currentText} onChange={setCurrentText} />
           </div>
           <div style={{marginTop: '8px'}}>
-            <ExportButton text={currentText} filename="transcript.txt" />
+            <div style={{display: 'flex', gap: '8px'}}>
+              <ExportButton text={currentText} filename="transcript.txt" />
+              <button onClick={handleSave} style={{padding: '8px 12px', background: 'linear-gradient(90deg,#6d28d9,#5b21b6)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer'}}>Save</button>
+            </div>
           </div>
           <div className="card" style={{marginTop: '12px'}}>
             <h3 style={{marginTop: 0}}>🔎 Keywords</h3>
