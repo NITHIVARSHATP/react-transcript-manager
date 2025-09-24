@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import TranscriptManagerPage from "./pages/TransacriptManagerPage";
 import AccuracyAnalyserPage from "./pages/AccuracyAnalyserPage";
+import ReportsPage from "./pages/ReportsPage";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
           <Routes>
             <Route path="/" element={<TranscriptManagerPage />} />
             <Route path="/accuracy" element={<AccuracyAnalyserPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
           </Routes>
         </div>
       </div>

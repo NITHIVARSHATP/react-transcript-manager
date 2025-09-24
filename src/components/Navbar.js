@@ -13,6 +13,9 @@ function Navbar() {
         <li>
           <Link to="/accuracy">Accuracy Analyser</Link>
         </li>
+        <li>
+          <Link to="/reports">Reports</Link>
+        </li>
       </ul>
     </nav>
   );
